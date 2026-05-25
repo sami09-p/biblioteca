@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Biblioteca de Supervivencia</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ===== CSS Biblioteca ===== */
+  :root{
+    --ink:#1c1813;
+    --paper:#ece3d2;
+    --card:#fbf7ee;
+    --accent:#b6552c;
+    --accent-deep:#7e3514;
+    --moss:#54603f;
+    --moss-deep:#3a4429;
+    --line:#cdc2aa;
+    --gold:#ab7d28;
+    --shadow:rgba(28,24,19,.20);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    background:
+      radial-gradient(ellipse at 8% 0%, rgba(171,125,40,.12), transparent 55%),
+      radial-gradient(ellipse at 100% 100%, rgba(84,96,63,.16), transparent 50%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/></svg>");
+    mix-blend-mode:multiply;
+  }
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:36px 18px 80px;}
+
+  /* ---------- Encabezado ---------- */
+  header{text-align:center;margin-bottom:30px;}
+  .kicker{
+    font-size:.7rem;letter-spacing:.4em;text-transform:uppercase;
+    color:var(--accent-deep);font-family:"Courier New",monospace;
+    display:inline-block;padding-bottom:8px;border-bottom:1.5px solid var(--accent);
+  }
+  h1{
+    font-size:clamp(2.1rem,6vw,3.3rem);font-weight:400;line-height:1.05;
+    margin:18px 0 6px;letter-spacing:-.02em;
+  }
+  h1 em{font-style:italic;color:var(--accent);}
+  .tagline{font-size:.98rem;color:#6c6353;font-style:italic;}
+
+  /* ---------- Barra de acciones ---------- */
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-bottom:18px;justify-content:center;
+  }
+  .btn{
+    font-family:inherit;font-size:.95rem;border:none;cursor:pointer;
+    padding:11px 20px;border-radius:3px;transition:transform .12s,box-shadow .2s,opacity .2s;
+    letter-spacing:.01em;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-add{
+    background:var(--accent);color:#fff;
+    box-shadow:0 6px 16px rgba(182,85,44,.32);
+  }
+  .btn-add:hover{box-shadow:0 8px 22px rgba(182,85,44,.44);}
+  .btn-view{
+    background:var(--card);color:var(--moss-deep);border:1px solid var(--line);
+  }
+  .btn-view.active{background:var(--moss);color:#fff;border-color:var(--moss);}
+  input[type=file]{display:none;}
+
+  .search{
+    width:100%;max-width:340px;font-family:inherit;font-size:.95rem;
+    padding:10px 14px;border:1px solid var(--line);border-radius:3px;
+    background:var(--card);color:var(--ink);
+  }
+  .search:focus{outline:none;border-color:var(--accent);}
+
+  /* ---------- Filtros de categoría ---------- */
+  .filters{
+    display:flex;gap:7px;flex-wrap:wrap;justify-content:center;
+    margin-bottom:24px;
+  }
+  .chip{
+    font-family:"Courier New",monospace;font-size:.74rem;
+    padding:6px 12px;border-radius:99px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:#6c6353;
+    transition:background .18s,color .18s,border-color .18s;
+    white-space:nowrap;
+  }
+  .chip:hover{border-color:var(--accent);}
+  .chip.active{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep);}
+  .chip .count{opacity:.65;margin-left:3px;}
+
+  /* ---------- Lista de libros ---------- */
+  .group-head{
+    font-size:.76rem;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--accent-deep);font-family:"Courier New",monospace;
+    margin:26px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);
+  }
+  .group-head:first-of-type{margin-top:0;}
+
+  .book{
+    display:flex;gap:14px;background:var(--card);
+    border:1px solid var(--line);border-radius:4px;padding:14px;
+    margin-bottom:12px;box-shadow:0 6px 18px var(--shadow);
+    transition:transform .14s,box-shadow .2s;
+  }
+  .book:hover{transform:translateY(-2px);box-shadow:0 10px 26px var(--shadow);}
+  .cover{
+    width:78px;height:108px;flex-shrink:0;border-radius:3px;
+    background:#e3d8c0 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M8 6h24v28H8z' fill='none' stroke='%23b6552c' stroke-width='2'/><path d='M14 14h12M14 20h12M14 26h8' stroke='%23b6552c' stroke-width='2' stroke-linecap='round'/></svg>") center/40% no-repeat;
+    object-fit:cover;border:1px solid var(--line);
+    box-shadow:2px 2px 6px var(--shadow);
+  }
+  .book-body{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .book-title{
+    font-size:1.12rem;font-weight:600;line-height:1.22;margin-bottom:2px;
+  }
+  .book-orig{
+    font-size:.78rem;color:#928876;font-style:italic;margin-bottom:6px;
+  }
+  .book-cat{
+    display:inline-block;font-family:"Courier New",monospace;font-size:.66rem;
+    text-transform:uppercase;letter-spacing:.08em;
+    color:var(--moss-deep);background:#e6e2d0;
+    padding:2px 8px;border-radius:99px;margin-bottom:7px;align-self:flex-start;
+  }
+  .book-desc{
+    font-size:.86rem;color:#5a5446;line-height:1.5;flex:1;
+    white-space:pre-wrap;
+  }
+  .book-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+  .mini{
+    font-family:"Courier New",monospace;font-size:.68rem;
+    padding:5px 10px;border-radius:3px;cursor:pointer;
+    border:1px solid var(--line);background:#f3ecdc;color:var(--accent-deep);
+    transition:background .15s,border-color .15s;
+  }
+  .mini:hover{background:#fff6ea;border-color:var(--accent);}
+  .mini.danger{color:#9a3a26;}
+
+  /* ---------- Estado vacío ---------- */
+  .empty{
+    text-align:center;padding:60px 20px;color:#928876;
+  }
+  .empty svg{width:60px;height:60px;margin-bottom:14px;opacity:.55;}
+  .empty p{font-style:italic;font-size:1.02rem;}
+
+  /* ---------- Modal de edición ---------- */
+  .modal-bg{
+    display:none;position:fixed;inset:0;z-index:50;
+    background:rgba(28,24,19,.55);backdrop-filter:blur(2px);
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:var(--card);border-radius:6px;max-width:480px;width:100%;
+    max-height:88vh;overflow-y:auto;padding:26px;
+    box-shadow:0 20px 60px rgba(28,24,19,.4);
+    animation:pop .26s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:none;}}
+  .modal h2{
+    font-size:1.4rem;font-weight:400;margin-bottom:18px;
+  }
+  .modal h2 em{font-style:italic;color:var(--accent);}
+  .field{margin-bottom:15px;}
+  .field label{
+    display:block;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent-deep);font-family:"Courier New",monospace;margin-bottom:5px;
+  }
+  .field input,.field textarea,.field select{
+    width:100%;font-family:inherit;font-size:.95rem;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:3px;padding:9px 11px;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{
+    outline:none;border-color:var(--accent);
+  }
+  .field textarea{resize:vertical;min-height:90px;line-height:1.5;}
+  .field .row{display:flex;gap:8px;}
+  .field .row input{flex:1;}
+  .modal-foot{display:flex;gap:10px;margin-top:20px;}
+  .modal-foot .btn{flex:1;}
+  .btn-save{background:var(--moss);color:#fff;}
+  .btn-cancel{background:transparent;border:1px solid var(--line);color:#6c6353;}
+  .hint{font-size:.76rem;color:#928876;margin-top:4px;font-style:italic;}
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--moss-deep);color:#fff;padding:11px 22px;border-radius:99px;
+    font-size:.88rem;box-shadow:0 8px 24px rgba(28,24,19,.4);
+    transition:transform .3s ease;z-index:60;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  footer{
+    margin-top:46px;text-align:center;font-size:.74rem;color:#928876;
+    font-family:"Courier New",monospace;letter-spacing:.05em;
+  }
+
+/* ===== CSS Traductor ===== */
+  :root{
+    --ink:#16130f;
+    --paper:#f4 ;
+    --paper:#f4efe6;
+    --card:#fffdf8;
+    --accent:#c1502e;
+    --accent-deep:#8a3315;
+    --line:#d8cfbe;
+    --moss:#5a6b4d;
+    --gold:#b88a2e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(184,138,46,.10), transparent 55%),
+      radial-gradient(ellipse at 100% 100%, rgba(90,107,77,.14), transparent 50%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/></svg>");
+    mix-blend-mode:multiply;
+  }
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:54px 26px 90px;}
+
+  /* ---------- Encabezado ---------- */
+  header{text-align:center;margin-bottom:46px;}
+  .kicker{
+    font-size:.74rem;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--accent-deep);font-family:"Courier New",monospace;
+    display:inline-block;padding-bottom:9px;border-bottom:1.5px solid var(--accent);
+  }
+  h1{
+    font-size:clamp(2.5rem,6vw,4.2rem);font-weight:400;line-height:1.02;
+    margin:22px 0 12px;letter-spacing:-.02em;
+  }
+  h1 em{font-style:italic;color:var(--accent);}
+  .sub{font-size:1.05rem;color:#6a6253;font-style:italic;max-width:540px;margin:0 auto;}
+
+  /* ---------- Zona de carga ---------- */
+  .dropzone{
+    margin:0 auto;max-width:680px;background:var(--card);
+    border:2px dashed var(--line);border-radius:4px;
+    padding:52px 32px;text-align:center;cursor:pointer;
+    transition:border-color .25s, background .25s, transform .15s;
+    position:relative;
+  }
+  .dropzone:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .dropzone.drag{border-color:var(--accent);background:#fff6ee;}
+  .dz-mark{
+    width:64px;height:64px;margin:0 auto 18px;border-radius:50%;
+    background:var(--accent);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 22px rgba(193,80,46,.32);
+  }
+  .dz-mark svg{width:30px;height:30px;}
+  .dz-title{font-size:1.35rem;margin-bottom:6px;}
+  .dz-hint{color:#857c6c;font-size:.95rem;}
+  .dz-hint b{color:var(--accent-deep);font-style:normal;}
+  input[type=file]{display:none;}
+
+  /* ---------- Panel de control ---------- */
+  .panel{
+    margin:30px auto 0;max-width:680px;background:var(--card);
+    border:1px solid var(--line);border-radius:4px;padding:26px 30px;
+    display:none;box-shadow:0 14px 40px rgba(20,16,8,.10);
+  }
+  .panel.show{display:block;animation:rise .4s ease;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .filerow{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+  .fileicon{
+    width:42px;height:50px;background:var(--accent);border-radius:3px;
+    flex-shrink:0;position:relative;color:#fff;font-size:.62rem;
+    font-family:"Courier New",monospace;
+  }
+  .fileicon::after{content:"PDF";position:absolute;bottom:7px;left:0;right:0;text-align:center;letter-spacing:.05em;}
+  .fileicon::before{content:"";position:absolute;top:0;right:0;border:9px solid transparent;border-top-color:#fffdf8;border-right-color:#fffdf8;}
+  .filemeta{flex:1;min-width:0;}
+  .filename{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .filesize{font-size:.83rem;color:#857c6c;}
+
+  .btn{
+    font-family:inherit;font-size:1rem;border:none;cursor:pointer;
+    padding:13px 26px;border-radius:3px;transition:transform .12s,box-shadow .2s,opacity .2s;
+    letter-spacing:.02em;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn-go{
+    background:var(--accent);color:#fff;width:100%;font-size:1.08rem;
+    box-shadow:0 8px 20px rgba(193,80,46,.30);
+  }
+  .btn-go:hover{box-shadow:0 10px 26px rgba(193,80,46,.42);}
+  .btn-go:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+  .btn-ghost{
+    background:transparent;color:var(--accent-deep);
+    border:1px solid var(--line);margin-top:10px;width:100%;
+  }
+  .btn-ghost:hover{border-color:var(--accent);}
+
+  /* ---------- Progreso ---------- */
+  .progress{display:none;margin-top:22px;}
+  .progress.show{display:block;}
+  .bar-track{height:8px;background:#eadfce;border-radius:99px;overflow:hidden;}
+  .bar-fill{
+    height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,var(--gold),var(--accent));
+    transition:width .35s ease;
+  }
+  .status{
+    margin-top:11px;font-size:.92rem;color:var(--moss);
+    font-family:"Courier New",monospace;text-align:center;
+  }
+
+  /* ---------- Vista previa ---------- */
+  .preview{margin-top:40px;display:none;}
+  .preview.show{display:block;}
+  .preview h2{
+    font-size:.78rem;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--accent-deep);text-align:center;margin-bottom:18px;
+    font-family:"Courier New",monospace;
+  }
+  .pages{display:flex;flex-direction:column;gap:26px;align-items:center;}
+  .page-card{
+    background:#fff;box-shadow:0 10px 30px rgba(20,16,8,.16);
+    border:1px solid var(--line);max-width:100%;
+  }
+  .page-card canvas{display:block;max-width:100%;height:auto;}
+
+  .note{
+    margin-top:30px;font-size:.86rem;color:#857c6c;text-align:center;
+    line-height:1.6;max-width:620px;margin-left:auto;margin-right:auto;
+  }
+  .note code{background:#eadfce;padding:1px 6px;border-radius:3px;font-size:.82rem;}
+
+  footer{
+    margin-top:60px;text-align:center;font-size:.78rem;color:#9a9180;
+    font-family:"Courier New",monospace;letter-spacing:.06em;
+  }
+  .err{
+    display:none;margin-top:16px;background:#fbe9e4;border:1px solid #e3a78f;
+    color:var(--accent-deep);padding:12px 16px;border-radius:3px;font-size:.9rem;
+  }
+  .err.show{display:block;}
+
+/* ===== CSS Navegación unificada ===== */
+.nav{
+  display:flex;gap:6px;justify-content:center;margin-bottom:26px;
+  background:var(--card);border:1px solid var(--line);border-radius:99px;
+  padding:5px;max-width:380px;margin-left:auto;margin-right:auto;
+  box-shadow:0 6px 16px var(--shadow);
+}
+.nav button{
+  flex:1;font-family:inherit;font-size:.95rem;cursor:pointer;
+  padding:10px 16px;border-radius:99px;border:none;background:transparent;
+  color:#6c6353;transition:background .18s,color .18s;
+}
+.nav button.active{background:var(--accent);color:#fff;}
+section.page{display:none;}
+section.page.active{display:block;animation:rise .35s ease;}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.backup-row{
+  display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap;
+}
+.backup-row .mini{font-size:.72rem;padding:7px 14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="kicker">Aplicación de campo</span>
+    <h1>Mi <em>Biblioteca</em></h1>
+    <p class="tagline">Tus libros de supervivencia y un traductor, en un solo sitio.</p>
+  </header>
+
+  <nav class="nav">
+    <button id="navBib" class="active">Biblioteca</button>
+    <button id="navTrad">Traductor</button>
+  </nav>
+
+  <!-- ============ SECCIÓN BIBLIOTECA ============ -->
+  <section class="page active" id="pageBib">
+    <div class="backup-row">
+      <button class="mini" id="btnExport">Exportar biblioteca</button>
+      <label class="mini" for="importInput" style="cursor:pointer;">Importar biblioteca</label>
+      <input type="file" id="importInput" accept="application/json" style="display:none;">
+    </div>
+  <div class="toolbar">
+    <label class="btn btn-add" for="fileInput">+ Añadir libros</label>
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+    <button class="btn btn-view active" id="viewFilter">Vista filtro</button>
+    <button class="btn btn-view" id="viewGroup">Vista agrupada</button>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search" id="search" placeholder="Buscar por título…">
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div id="library"></div>
+
+  </section>
+
+  <!-- ============ SECCIÓN TRADUCTOR ============ -->
+  <section class="page" id="pageTrad">
+
+  <!-- Carga -->
+  <label class="dropzone" id="dropzone">
+    <div class="dz-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 19V6M5 12l7-7 7 7"/>
+      </svg>
+    </div>
+    <div class="dz-title">Arrastra tu PDF aquí</div>
+    <div class="dz-hint">o <b>haz clic para seleccionar</b> un archivo · solo .pdf</div>
+    <input type="file" id="tradFileInput" accept="application/pdf">
+  </label>
+
+  <!-- Panel -->
+  <div class="panel" id="panel">
+    <div class="filerow">
+      <div class="fileicon"></div>
+      <div class="filemeta">
+        <div class="filename" id="fileName">documento.pdf</div>
+        <div class="filesize" id="fileSize">—</div>
+      </div>
+    </div>
+    <button class="btn btn-go" id="goBtn">Traducir al español</button>
+    <button class="btn btn-ghost" id="resetBtn">Elegir otro archivo</button>
+
+    <div class="progress" id="progress">
+      <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+      <div class="status" id="status">Preparando…</div>
+    </div>
+
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- Vista previa -->
+  <div class="preview" id="preview">
+    <h2>Vista previa traducida</h2>
+    <div class="pages" id="pages"></div>
+  </div>
+
+  <p class="note">
+    El texto se agrupa por líneas y se reescribe con tamaño uniforme, conservando
+    el diseño, las imágenes y la composición de cada página. La traducción usa el
+    servicio público de Google Translate, procesando varias líneas por petición y
+    en paralelo para mayor rapidez. Funciona mejor con PDFs de texto (no escaneados).
+  </p>
+
+  </section>
+
+  <footer>· Funciona sin conexión · Tu biblioteca se guarda en este dispositivo ·</footer>
+</div>
+
+<!-- Modal de edición -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Editar <em>libro</em></h2>
+    <div class="field">
+      <label>Título en español</label>
+      <div class="row">
+        <input type="text" id="mTitle" placeholder="Título del libro">
+        <button class="mini" id="mTranslate" title="Traducir del original">Traducir</button>
+      </div>
+      <div class="hint" id="mOrig"></div>
+    </div>
+    <div class="field">
+      <label>Categoría</label>
+      <select id="mCat"></select>
+    </div>
+    <div class="field">
+      <label>Descripción / Índice</label>
+      <textarea id="mDesc" placeholder="Contenido del libro…"></textarea>
+      <div class="hint">Se rellena con el índice del PDF si lo tiene. Puedes editarla.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-cancel" id="mCancel">Cancelar</button>
+      <button class="btn btn-save" id="mSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====================================================================
+   APP UNIFICADA · Biblioteca + Traductor
+   Cada módulo va en su propia función para aislar variables y IDs.
+   ==================================================================== */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+/* ---------- Navegación entre secciones ---------- */
+(function(){
+  const navBib  = document.getElementById("navBib");
+  const navTrad = document.getElementById("navTrad");
+  const pageBib  = document.getElementById("pageBib");
+  const pageTrad = document.getElementById("pageTrad");
+  navBib.onclick = () => {
+    navBib.classList.add("active"); navTrad.classList.remove("active");
+    pageBib.classList.add("active"); pageTrad.classList.remove("active");
+  };
+  navTrad.onclick = () => {
+    navTrad.classList.add("active"); navBib.classList.remove("active");
+    pageTrad.classList.add("active"); pageBib.classList.remove("active");
+  };
+})();
+
+/* ---------- Capa de almacenamiento universal ----------
+   Usa window.storage si existe (visor de artefactos); si no,
+   recurre a localStorage del navegador. Así la app guarda la
+   biblioteca tanto dentro de Claude como abierta en Chrome. */
+const appStorage = (function(){
+  const hasWS = (typeof window !== "undefined" && window.storage
+                 && typeof window.storage.get === "function");
+  if (hasWS) return window.storage;
+  return {
+    async get(key){
+      const v = localStorage.getItem(key);
+      return v === null ? null : { key, value: v };
+    },
+    async set(key, value){
+      localStorage.setItem(key, value);
+      return { key, value };
+    },
+    async delete(key){
+      localStorage.removeItem(key);
+      return { key, deleted: true };
+    }
+  };
+})();
+
+/* ==================== MÓDULO BIBLIOTECA ==================== */
+function initBiblioteca(){
+
+/* ---------- Categorías fijas ---------- */
+const CATEGORIES = [
+  "Supervivencia general",
+  "Bushcraft y fuego",
+  "Refugios y construcciones",
+  "Vida primitiva / autosuficiencia",
+  "Plantas comestibles y recolección",
+  "Plantas medicinales",
+  "Caza",
+  "Trampeo y pesca",
+  "Agricultura y huerto",
+  "Conservación de alimentos",
+  "Primeros auxilios y medicina",
+  "Preparacionismo y desastres",
+  "Armas y defensa personal",
+  "Cuerdas, nudos y cordelería",
+  "Navegación y orientación",
+  "Agua y purificación",
+  "Clima y estaciones",
+  "Otros / Sin clasificar"
+];
+
+/* ---------- Estado ---------- */
+let library = [];          // [{id,title,original,category,desc,cover}]
+let activeFilter = "Todos";
+let viewMode = "filter";   // "filter" | "group"
+let searchTerm = "";
+
+const STORE_KEY = "biblioteca:catalogo";
+
+/* ---------- Persistencia ---------- */
+async function saveLibrary(){
+  try{
+    await appStorage.set(STORE_KEY, JSON.stringify(library), false);
+  }catch(e){ console.error("No se pudo guardar:", e); }
+}
+async function loadLibrary(){
+  try{
+    const r = await appStorage.get(STORE_KEY, false);
+    if (r && r.value) library = JSON.parse(r.value);
+  }catch(e){ library = []; }
+}
+
+/* ---------- Utilidades ---------- */
+const $ = id => document.getElementById(id);
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function uid(){ return "b" + Date.now() + Math.random().toString(36).slice(2,7); }
+
+/* ---------- Traducción (requiere internet solo al pulsar) ---------- */
+async function translateText(text){
+  const clean = (text || "").trim();
+  if (!clean) return "";
+  const url = "https://translate.googleapis.com/translate_a/single"
+    + "?client=gtx&sl=auto&tl=es&dt=t&q=" + encodeURIComponent(clean);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return (data[0] || []).map(s => s[0]).join("");
+}
+
+/* ---------- Lectura del PDF: portada + índice ---------- */
+async function renderCover(pdf, pageNum){
+  const page = await pdf.getPage(pageNum);
+  const vp = page.getViewport({ scale: 1 });
+  const scale = 220 / vp.width;            // miniatura pequeña
+  const v = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = v.width;
+  canvas.height = v.height;
+  await page.render({ canvasContext: canvas.getContext("2d"), viewport: v }).promise;
+  return canvas.toDataURL("image/jpeg", 0.7);
+}
+
+async function extractOutline(pdf){
+  // Intenta leer los marcadores/índice incrustados
+  try{
+    const outline = await pdf.getOutline();
+    if (outline && outline.length){
+      const titles = outline.slice(0, 18).map(o => "· " + o.title.trim());
+      return titles.join("\n");
+    }
+  }catch(e){}
+  return "";  // sin índice incrustado
+}
+
+async function processPdf(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const cover = await renderCover(pdf, 1);
+  const outline = await extractOutline(pdf);
+  // Título: metadato del PDF o nombre del archivo
+  let title = file.name.replace(/\.pdf$/i, "");
+  try{
+    const meta = await pdf.getMetadata();
+    if (meta && meta.info && meta.info.Title && meta.info.Title.trim())
+      title = meta.info.Title.trim();
+  }catch(e){}
+  return {
+    id: uid(),
+    title: title,
+    original: title,
+    category: "Otros / Sin clasificar",
+    desc: outline || "(Este PDF no tiene índice incrustado. Escribe aquí su contenido.)",
+    cover: cover,
+    numPages: pdf.numPages,
+    _buf: buf            // se conserva en memoria para cambiar portada
+  };
+}
+
+/* ---------- Añadir libros ---------- */
+$("fileInput").addEventListener("change", async e => {
+  const files = [...e.target.files].filter(f => f.type === "application/pdf");
+  if (!files.length) return;
+  toast("Procesando " + files.length + " libro(s)…");
+  for (const f of files){
+    try{
+      const book = await processPdf(f);
+      library.push(book);
+      render();
+    }catch(err){
+      toast("Error con " + f.name);
+    }
+  }
+  await saveLibrary();
+  toast(files.length + " libro(s) añadido(s)");
+  e.target.value = "";
+});
+
+/* ---------- Render de filtros ---------- */
+function countByCat(){
+  const c = {};
+  for (const b of library) c[b.category] = (c[b.category] || 0) + 1;
+  return c;
+}
+function renderFilters(){
+  const box = $("filters");
+  box.innerHTML = "";
+  if (viewMode === "group"){ box.style.display = "none"; return; }
+  box.style.display = "flex";
+  const counts = countByCat();
+  const cats = ["Todos", ...CATEGORIES.filter(c => counts[c])];
+  for (const cat of cats){
+    const chip = document.createElement("div");
+    chip.className = "chip" + (cat === activeFilter ? " active" : "");
+    const n = cat === "Todos" ? library.length : (counts[cat] || 0);
+    chip.innerHTML = cat + ' <span class="count">(' + n + ')</span>';
+    chip.onclick = () => { activeFilter = cat; render(); };
+    box.appendChild(chip);
+  }
+}
+
+/* ---------- Render de un libro ---------- */
+function bookCard(b){
+  const el = document.createElement("div");
+  el.className = "book";
+  const cover = b.cover
+    ? `<img class="cover" src="${b.cover}" alt="">`
+    : `<div class="cover"></div>`;
+  const orig = (b.original && b.original !== b.title)
+    ? `<div class="book-orig">Original: ${escapeHtml(b.original)}</div>` : "";
+  el.innerHTML = `
+    ${cover}
+    <div class="book-body">
+      <div class="book-title">${escapeHtml(b.title)}</div>
+      ${orig}
+      <span class="book-cat">${escapeHtml(b.category)}</span>
+      <div class="book-desc">${escapeHtml(b.desc)}</div>
+      <div class="book-actions">
+        <button class="mini" data-act="edit">Editar</button>
+        <button class="mini" data-act="cover">Cambiar portada</button>
+        <button class="mini danger" data-act="del">Eliminar</button>
+      </div>
+    </div>`;
+  el.querySelector('[data-act=edit]').onclick = () => openModal(b.id);
+  el.querySelector('[data-act=cover]').onclick = () => changeCover(b.id);
+  el.querySelector('[data-act=del]').onclick = () => delBook(b.id);
+  return el;
+}
+function escapeHtml(s){
+  return (s || "").replace(/[&<>"]/g, c =>
+    ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+}
+
+/* ---------- Render principal ---------- */
+function render(){
+  renderFilters();
+  const lib = $("library");
+  lib.innerHTML = "";
+
+  let list = library.slice();
+  if (searchTerm){
+    const q = searchTerm.toLowerCase();
+    list = list.filter(b =>
+      b.title.toLowerCase().includes(q) ||
+      (b.original || "").toLowerCase().includes(q));
+  }
+
+  if (!library.length){
+    lib.innerHTML = `
+      <div class="empty">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 10h14v30H8zM26 10h14v30H26z" stroke-linejoin="round"/>
+          <path d="M12 18h6M12 24h6M30 18h6M30 24h6" stroke-linecap="round"/>
+        </svg>
+        <p>Tu biblioteca está vacía.<br>Pulsa «Añadir libros» para empezar.</p>
+      </div>`;
+    return;
+  }
+
+  if (viewMode === "group"){
+    for (const cat of CATEGORIES){
+      const inCat = list.filter(b => b.category === cat);
+      if (!inCat.length) continue;
+      const h = document.createElement("div");
+      h.className = "group-head";
+      h.textContent = cat + " (" + inCat.length + ")";
+      lib.appendChild(h);
+      inCat.forEach(b => lib.appendChild(bookCard(b)));
+    }
+  } else {
+    if (activeFilter !== "Todos")
+      list = list.filter(b => b.category === activeFilter);
+    if (!list.length){
+      lib.innerHTML = `<div class="empty"><p>No hay libros en esta categoría.</p></div>`;
+      return;
+    }
+    list.forEach(b => lib.appendChild(bookCard(b)));
+  }
+}
+
+/* ---------- Vistas ---------- */
+$("viewFilter").onclick = () => {
+  viewMode = "filter";
+  $("viewFilter").classList.add("active");
+  $("viewGroup").classList.remove("active");
+  render();
+};
+$("viewGroup").onclick = () => {
+  viewMode = "group";
+  $("viewGroup").classList.add("active");
+  $("viewFilter").classList.remove("active");
+  render();
+};
+$("search").addEventListener("input", e => {
+  searchTerm = e.target.value;
+  render();
+});
+
+/* ---------- Eliminar ---------- */
+async function delBook(id){
+  const b = library.find(x => x.id === id);
+  if (!b) return;
+  if (!confirm('¿Eliminar "' + b.title + '" de la biblioteca?')) return;
+  library = library.filter(x => x.id !== id);
+  await saveLibrary();
+  render();
+  toast("Libro eliminado");
+}
+
+/* ---------- Cambiar portada ---------- */
+async function changeCover(id){
+  const b = library.find(x => x.id === id);
+  if (!b) return;
+  if (!b._buf){
+    toast("Vuelve a añadir el libro para cambiar la portada");
+    return;
+  }
+  const max = b.numPages || 1;
+  const ans = prompt("¿Qué página usar como portada? (1 a " + max + ")", "2");
+  if (ans === null) return;
+  const n = parseInt(ans, 10);
+  if (!n || n < 1 || n > max){ toast("Página no válida"); return; }
+  try{
+    const pdf = await pdfjsLib.getDocument({ data: b._buf }).promise;
+    b.cover = await renderCover(pdf, n);
+    await saveLibrary();
+    render();
+    toast("Portada actualizada");
+  }catch(e){ toast("No se pudo cambiar la portada"); }
+}
+
+/* ---------- Modal de edición ---------- */
+let editingId = null;
+function openModal(id){
+  const b = library.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  $("mTitle").value = b.title;
+  $("mDesc").value = b.desc;
+  $("mOrig").textContent = b.original
+    ? "Título original: " + b.original : "";
+  const sel = $("mCat");
+  sel.innerHTML = "";
+  for (const c of CATEGORIES){
+    const o = document.createElement("option");
+    o.value = c; o.textContent = c;
+    if (c === b.category) o.selected = true;
+    sel.appendChild(o);
+  }
+  $("modalBg").classList.add("show");
+}
+function closeModal(){
+  $("modalBg").classList.remove("show");
+  editingId = null;
+}
+$("mCancel").onclick = closeModal;
+$("modalBg").addEventListener("click", e => {
+  if (e.target === $("modalBg")) closeModal();
+});
+$("mSave").onclick = async () => {
+  const b = library.find(x => x.id === editingId);
+  if (!b) return;
+  b.title = $("mTitle").value.trim() || b.original || "Sin título";
+  b.desc  = $("mDesc").value;
+  b.category = $("mCat").value;
+  await saveLibrary();
+  closeModal();
+  render();
+  toast("Cambios guardados");
+};
+$("mTranslate").onclick = async () => {
+  const orig = $("mOrig").textContent.replace("Título original: ", "")
+               || $("mTitle").value;
+  if (!orig.trim()){ toast("No hay título que traducir"); return; }
+  $("mTranslate").textContent = "…";
+  try{
+    const es = await translateText(orig);
+    $("mTitle").value = es;
+    toast("Título traducido");
+  }catch(e){
+    toast("Sin conexión: no se pudo traducir");
+  }
+  $("mTranslate").textContent = "Traducir";
+};
+
+/* ---------- Arranque ---------- */
+(async function init(){
+  await loadLibrary();
+  render();
+})();
+
+  /* ---- Exportar / Importar (respaldo del catálogo) ---- */
+  document.getElementById("btnExport").onclick = async () => {
+    if (!library.length){ toast("La biblioteca está vacía"); return; }
+    const data = JSON.stringify(library, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mi-biblioteca.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Biblioteca exportada");
+  };
+  document.getElementById("importInput").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try{
+      const text = await f.text();
+      const imported = JSON.parse(text);
+      if (!Array.isArray(imported)) throw new Error("formato");
+      // fusionar evitando duplicados por id
+      const ids = new Set(library.map(b => b.id));
+      let added = 0;
+      for (const b of imported){
+        if (!ids.has(b.id)){ library.push(b); added++; }
+      }
+      await saveLibrary();
+      render();
+      toast(added + " libro(s) importado(s)");
+    }catch(err){
+      toast("Archivo de biblioteca no válido");
+    }
+    e.target.value = "";
+  });
+}
+
+/* ==================== MÓDULO TRADUCTOR ==================== */
+function initTraductor(){
+
+const { jsPDF } = window.jspdf;
+
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("tradFileInput");
+const panel     = document.getElementById("panel");
+const fileName  = document.getElementById("fileName");
+const fileSize  = document.getElementById("fileSize");
+const goBtn     = document.getElementById("goBtn");
+const resetBtn  = document.getElementById("resetBtn");
+const progress  = document.getElementById("progress");
+const barFill   = document.getElementById("barFill");
+const statusEl  = document.getElementById("status");
+const preview   = document.getElementById("preview");
+const pagesEl   = document.getElementById("pages");
+const errEl     = document.getElementById("err");
+
+let currentFile = null;
+
+/* ---------- Selección de archivo ---------- */
+fileInput.addEventListener("change", e => {
+  if (e.target.files.length) loadFile(e.target.files[0]);
+});
+["dragenter","dragover"].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add("drag"); }));
+["dragleave","drop"].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove("drag"); }));
+dropzone.addEventListener("drop", e => {
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === "application/pdf") loadFile(f);
+  else showError("El archivo debe ser un PDF.");
+});
+
+function loadFile(file){
+  if (file.type !== "application/pdf"){ showError("El archivo debe ser un PDF."); return; }
+  currentFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = (file.size/1024/1024).toFixed(2) + " MB";
+  panel.classList.add("show");
+  preview.classList.remove("show");
+  pagesEl.innerHTML = "";
+  progress.classList.remove("show");
+  hideError();
+  goBtn.disabled = false;
+  goBtn.textContent = "Traducir al español";
+}
+
+resetBtn.addEventListener("click", () => {
+  currentFile = null;
+  fileInput.value = "";
+  panel.classList.remove("show");
+  preview.classList.remove("show");
+  hideError();
+});
+
+function showError(msg){ errEl.textContent = msg; errEl.classList.add("show"); }
+function hideError(){ errEl.classList.remove("show"); }
+function setStatus(msg){ statusEl.textContent = msg; }
+function setBar(pct){ barFill.style.width = pct + "%"; }
+
+/* ---------- Traducción vía Google Translate (endpoint público) ----------
+   Estrategia rápida: se juntan muchas líneas en UNA sola petición usando un
+   delimitador, y se lanzan varias peticiones en paralelo. Así se pasa de
+   miles de llamadas de red a unas pocas decenas. */
+const cache = new Map();
+const SEP = "\n\u2063\u2063\n"; // delimitador invisible entre líneas
+
+// Traduce un solo texto (puede contener el delimitador con varias líneas)
+async function translateChunk(text){
+  const url = "https://translate.googleapis.com/translate_a/single"
+    + "?client=gtx&sl=auto&tl=es&dt=t&q=" + encodeURIComponent(text);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return (data[0] || []).map(seg => seg[0]).join("");
+}
+
+/* Traduce una lista de líneas. Empaqueta varias líneas por petición
+   (hasta ~1500 caracteres) y lanza POOL peticiones simultáneas. */
+async function translateBatch(items, onProgress){
+  const results = new Array(items.length);
+  const pending = []; // { idxs:[...], text:"..." }
+
+  // Reúne las líneas en paquetes, reutilizando la caché
+  let curIdx = [], curParts = [], curLen = 0;
+  const MAXLEN = 1500;
+  const flush = () => {
+    if (curIdx.length){
+      pending.push({ idxs: curIdx, text: curParts.join(SEP) });
+      curIdx = []; curParts = []; curLen = 0;
+    }
+  };
+  for (let i = 0; i < items.length; i++){
+    const clean = (items[i] || "").trim();
+    if (!clean){ results[i] = items[i]; continue; }
+    if (cache.has(clean)){ results[i] = cache.get(clean); continue; }
+    if (curLen + clean.length > MAXLEN) flush();
+    curIdx.push(i); curParts.push(clean); curLen += clean.length + 4;
+  }
+  flush();
+
+  const total = items.length;
+  let translatedCount = total - pending.reduce((s,p)=>s+p.idxs.length,0);
+  onProgress(translatedCount, total);
+
+  // Procesa los paquetes con un pool de concurrencia
+  const POOL = 8;
+  let next = 0;
+  async function worker(){
+    while (next < pending.length){
+      const job = pending[next++];
+      let outParts;
+      try{
+        const out = await translateChunk(job.text);
+        outParts = out.split(SEP);
+        // Si el delimitador no sobrevivió, reintenta línea por línea
+        if (outParts.length !== job.idxs.length){
+          outParts = [];
+          for (const part of job.text.split(SEP)){
+            try{ outParts.push(await translateChunk(part)); }
+            catch(_){ outParts.push(part); }
+          }
+        }
+      }catch(e){
+        outParts = job.text.split(SEP); // si falla, conserva original
+      }
+      job.idxs.forEach((idx, k) => {
+        const val = (outParts[k] || items[idx]).trim();
+        results[idx] = val;
+        cache.set(items[idx].trim(), val);
+      });
+      translatedCount += job.idxs.length;
+      onProgress(translatedCount, total);
+    }
+  }
+  await Promise.all(Array.from({ length: POOL }, worker));
+  return results;
+}
+
+/* ---------- Proceso principal ---------- */
+goBtn.addEventListener("click", async () => {
+  if (!currentFile) return;
+  goBtn.disabled = true;
+  goBtn.textContent = "Procesando…";
+  hideError();
+  progress.classList.add("show");
+  preview.classList.remove("show");
+  pagesEl.innerHTML = "";
+  setBar(2);
+  setStatus("Leyendo el PDF…");
+
+  try{
+    const buf = await currentFile.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const numPages = pdf.numPages;
+
+    // 1) Recolectar el texto agrupándolo en LÍNEAS
+    //    (varios fragmentos contiguos en la misma fila = una línea).
+    setStatus("Extrayendo texto…");
+    const pageData = [];
+    let allLines = [];   // texto de cada línea, para traducir
+    for (let p = 1; p <= numPages; p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.filter(it => it.str && it.str.trim());
+
+      // Agrupar fragmentos por línea según su posición vertical
+      items.sort((a,b) => (b.transform[5] - a.transform[5]) || (a.transform[4] - b.transform[4]));
+      const lines = [];
+      for (const it of items){
+        const y  = it.transform[5];
+        const fh = Math.hypot(it.transform[2], it.transform[3]);
+        let line = lines[lines.length - 1];
+        if (!line || Math.abs(line.y - y) > fh * 0.6){
+          line = { y, items: [], fh };
+          lines.push(line);
+        }
+        line.items.push(it);
+        line.fh = Math.max(line.fh, fh);
+      }
+      // Construir el texto de cada línea con sus métricas
+      for (const line of lines){
+        line.items.sort((a,b) => a.transform[4] - b.transform[4]);
+        const first = line.items[0];
+        const last  = line.items[line.items.length - 1];
+        line.text = line.items.map(it => it.str).join(" ")
+                       .replace(/\s+/g, " ").trim();
+        line.x  = first.transform[4];
+        line.baseline = first.transform[5];
+        const lastW = last.width || line.fh * last.str.length * 0.5;
+        line.boxW = (last.transform[4] + lastW) - first.transform[4];
+      }
+      const realLines = lines.filter(l => l.text);
+      pageData.push({ page, lines: realLines });
+      allLines.push(...realLines.map(l => l.text));
+      setBar(2 + (p / numPages) * 18);
+    }
+
+    // 2) Traducir todas las líneas (agrupadas y en paralelo)
+    setStatus("Traduciendo al español (0%)…");
+    const translated = await translateBatch(allLines, (done, total) => {
+      const pct = Math.round((done / total) * 100);
+      setStatus(`Traduciendo al español (${pct}%)…`);
+      setBar(20 + (done / total) * 55);
+    });
+
+    // 3) Reconstruir el PDF página por página
+    setStatus("Reconstruyendo el documento…");
+    let cursor = 0;
+    let doc = null;
+
+    for (let i = 0; i < pageData.length; i++){
+      const { page, lines } = pageData[i];
+      const viewport = page.getViewport({ scale: 2 });
+
+      // Render del fondo (imágenes, gráficos, colores) a un canvas
+      const canvasBg = document.createElement("canvas");
+      canvasBg.width  = viewport.width;
+      canvasBg.height = viewport.height;
+      const ctx = canvasBg.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const vp1 = page.getViewport({ scale: 1 });
+      const sx = viewport.width / vp1.width;
+      const sy = viewport.height / vp1.height;
+
+      // Tapar cada línea original con un rectángulo del color del fondo
+      for (const line of lines){
+        const x    = line.x * sx;
+        const yTop = (vp1.height - line.baseline - line.fh) * sy;
+        const w    = line.boxW * sx;
+        const h    = line.fh * sy * 1.35;
+        const sampleY = Math.max(0, Math.floor(yTop - 2));
+        const px = ctx.getImageData(
+          Math.min(canvasBg.width-1,  Math.floor(x+1)),
+          Math.min(canvasBg.height-1, sampleY), 1, 1).data;
+        ctx.fillStyle = `rgb(${px[0]},${px[1]},${px[2]})`;
+        ctx.fillRect(x - 2, yTop - 2, w + 6, h + 3);
+      }
+
+      // Página al PDF de salida con el fondo ya limpio
+      const imgData = canvasBg.toDataURL("image/jpeg", 0.92);
+      const pw = vp1.width, ph = vp1.height;
+      if (i === 0){
+        doc = new jsPDF({ unit: "pt", format: [pw, ph],
+                          orientation: pw > ph ? "landscape" : "portrait" });
+      } else {
+        doc.addPage([pw, ph], pw > ph ? "landscape" : "portrait");
+      }
+      doc.addImage(imgData, "JPEG", 0, 0, pw, ph);
+
+      // Escribir el texto traducido manteniendo el tamaño por PÁRRAFO.
+      // Se agrupan líneas consecutivas de igual tamaño y poco interlineado
+      // en un párrafo, y se calcula un ÚNICO factor de escala para todas
+      // sus líneas: así el bloque entero queda uniforme y fiel al original.
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "rgb(20,19,15)";
+
+      // 3a) Agrupar las líneas de la página en párrafos
+      const paragraphs = [];
+      for (let li = 0; li < lines.length; li++){
+        const line = lines[li];
+        const prev = lines[li - 1];
+        const gap  = prev ? Math.abs(prev.baseline - line.baseline) : 0;
+        const sameSize = prev && Math.abs(prev.fh - line.fh) <= prev.fh * 0.12;
+        // misma fuente y separación vertical típica de un párrafo
+        const continues = prev && sameSize && gap > 0 && gap < line.fh * 2.2;
+        if (continues){
+          paragraphs[paragraphs.length - 1].push(line);
+        } else {
+          paragraphs.push([line]);
+        }
+      }
+
+      // 3b) Para cada párrafo, hallar el factor de escala mínimo común
+      for (const para of paragraphs){
+        let scale = 1;
+        for (let pi = 0; pi < para.length; pi++){
+          const line = para[pi];
+          const esText = translated[cursor + pi] || line.text;
+          doc.setFontSize(line.fh);
+          const measured = doc.getTextWidth(esText);
+          if (line.boxW > 6 && measured > line.boxW){
+            scale = Math.min(scale, line.boxW / measured);
+          }
+        }
+        // No bajar de 65 % para no perder legibilidad
+        scale = Math.max(scale, 0.65);
+
+        // 3c) Escribir todas las líneas del párrafo con ese mismo tamaño
+        for (const line of para){
+          const esText = translated[cursor++] || line.text;
+          const fontSize = line.fh * scale;
+          const x = line.x;
+          const yBaseline = vp1.height - line.baseline;
+
+          doc.setFontSize(fontSize);
+          doc.setTextColor(20, 19, 15);
+          doc.text(esText, x, yBaseline, { baseline: "alphabetic" });
+
+          // Mismo texto en el canvas de vista previa
+          ctx.font = (fontSize * sx) + "px Georgia, serif";
+          ctx.fillText(esText, x * sx, yBaseline * sy);
+        }
+      }
+
+      // Vista previa en pantalla
+      const card = document.createElement("div");
+      card.className = "page-card";
+      card.appendChild(canvasBg);
+      pagesEl.appendChild(card);
+
+      setBar(75 + ((i + 1) / pageData.length) * 22);
+      setStatus(`Reconstruyendo página ${i + 1} de ${pageData.length}…`);
+    }
+
+    // 4) Descargar
+    setBar(100);
+    setStatus("¡Listo! Descargando…");
+    const outName = currentFile.name.replace(/\.pdf$/i, "") + "_es.pdf";
+    doc.save(outName);
+
+    preview.classList.add("show");
+    goBtn.textContent = "Traducir otro PDF";
+    goBtn.disabled = false;
+
+  }catch(e){
+    console.error(e);
+    showError("No se pudo procesar el PDF: " + e.message +
+      ". Si el PDF está escaneado como imagen, no contiene texto seleccionable.");
+    goBtn.disabled = false;
+    goBtn.textContent = "Reintentar";
+    setStatus("Error en el proceso.");
+  }
+});
+}
+
+/* ---------- Arranque de ambos módulos ---------- */
+initBiblioteca();
+initTraductor();
+</script>
+</body>
+</html>
